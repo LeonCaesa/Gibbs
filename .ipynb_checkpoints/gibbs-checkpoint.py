@@ -7,7 +7,7 @@ import pandas as pd
 import warnings
 warnings.filterwarnings("ignore")
 
-def gibbs_scheme(X,init_dict, iterations, q, prior_param, standard =True):
+def gibbs_scheme(X,init_dict, iterations, q, prior_param, xi = None):
         """
         Function to implement gibbs scheme
         params: X, d by n data matrix,
@@ -19,10 +19,13 @@ def gibbs_scheme(X,init_dict, iterations, q, prior_param, standard =True):
                                    scalar sigma sqaure
         params: prior_param, dict of prior for alpha_j, 1 by q vector a_aj and beta_aj
                                      prior for sigma sqaure, scalar beta_sigma2, scalar a_sigma2
+        params: xi, scalar, approxmiate sampling coefficient
         return: pandas dataframe of inference on sigma2, Z, W and alpha
     
         """
-    
+        if xi is None:
+            xi = 1
+        
         d = np.shape(X)[0]
         n_sample = np.shape(X)[1]
         # inference parameters
@@ -46,24 +49,24 @@ def gibbs_scheme(X,init_dict, iterations, q, prior_param, standard =True):
         
         for j in range(iterations):
 
-            # sampling from alpha, scalar 
-            alpha_sigma2_temp = n_sample * d/2 + a_sigma2
+            # sampling for sigma2, scalar 
+            alpha_sigma2_temp = n_sample * xi * d/2 + a_sigma2
             X_WZ = (X- np.dot(W_list[-1], Z_list[-1]))
             S_x = np.trace(np.dot(X_WZ.T, X_WZ))
-            beta_sigma2_temp = (0.5 * (S_x + 2 * beta_sigma2))
+            beta_sigma2_temp = (0.5 * (S_x * xi + 2 * beta_sigma2))
             sigma2_list.append(1/np.random.gamma(alpha_sigma2_temp, 1/beta_sigma2_temp))
 
 
             # sampling for (Z)_{qxn}
-            C = 1/sigma2_list[-1] * np.dot( W_list[-1].T, W_list[-1]) + np.diag(np.ones([q]))
+            C = xi/sigma2_list[-1] * np.dot( W_list[-1].T, W_list[-1]) + np.diag(np.ones([q]))
 
             first = np.linalg.inv(C)
 
-            second = 1/sigma2_list[-1]* np.dot(W_list[-1].T, X)
+            second = xi/sigma2_list[-1]* np.dot(W_list[-1].T, X)
 
             Z_hat = np.dot(first, second)
 
-            Z_sigma2 = 1/sigma2_list[-1]* np.linalg.inv (np.dot(W_list[-1].T, W_list[-1]) + np.diag(np.ones(q)))
+            Z_sigma2 = xi/sigma2_list[-1]* np.linalg.inv (np.dot(W_list[-1].T, W_list[-1]) + np.diag(np.ones(q)))
 
             Z_temp = np.random.normal(0, 1, [q, n_sample])
 
@@ -77,11 +80,11 @@ def gibbs_scheme(X,init_dict, iterations, q, prior_param, standard =True):
 
             nominator = w_mu_nominator(X,Z_list)
 
-            denominator = (sigma2_list[-1] * alpha_list[-1] + np.sum(Z_list[-1]**2,axis=1))
+            denominator = (xi / sigma2_list[-1] * alpha_list[-1] + np.sum(Z_list[-1]**2,axis=1))
 
             mu_w = nominator.T/denominator.T
 
-            sigma2_w = sigma2_list[-1]/ (sigma2_list[-1] * alpha_list[-1] + np.sum(Z_list[-1]**2,axis=1))
+            sigma2_w = sigma2_list[-1]/ (xi / sigma2_list[-1] * alpha_list[-1] + np.sum(Z_list[-1]**2,axis=1))
 
             sigma2_w_temp = [np.diag(np.repeat(i,d)) for i in sigma2_w]
 

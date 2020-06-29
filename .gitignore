@@ -1,2 +1,4 @@
 *.csv
+.ipynb_*
+__pycache*
 *.png
