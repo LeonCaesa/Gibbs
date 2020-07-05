@@ -18,28 +18,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def forward_sample(d, q_star, sigma2_star, a_star_list):
-    """
-        Function to simulate ppca data using X= WZ + \sigma^2 I_n
-        param: d, dimension of data
-        param: q_star, true dimension of principle components
-        param: n_sample, numebr of observations
-        param: a_star_list, jx1 vector, 1/variance parameter to generate W_j ~ N(0, 1/a_j I_d)
-    """
-    mu_z = np.zeros([q_star])
-    sigma2_z = np.diag(np.ones([q_star]))
-    Z_star = np.random.multivariate_normal(mu_z, sigma2_z).T
+from mcmc_plot import trace_plot, get_trace_list
 
-    mu_w = np.zeros([d])
-    W = np.zeros([d, q_star])
-    for j in range(q_star):
-        sigma2_w = np.diag(a_star_list[j] * np.ones(d))
-        W_star_j = np .random.multivariate_normal(mu_w, sigma2_w)
-        W[:, j] = W_star_j
-
-    X = np.dot(W, Z_star) + np.random.normal(0, sigma2_star, d)
-
-    return X
 
 
 
@@ -48,30 +28,35 @@ def geweke(iterations, d, q_star, sigma2_star, a_star_list, prior_param, init_di
     forward_results = []
     for i in range(iterations):
         X_i = generate_data(d, q_star, n_sample, sigma2_star, a_star_list)
-        forward_results.append(np.mean(X_i,axis=1))
+        forward_results.append(np.mean(np.std(X_i,axis=1)))
     
  
     gibbs_results = []                      
-#    X_i = forward_sample(d, q_star, sigma2_star, a_star_list).reshape([d,1])    
     X_i = generate_data(d, q_star, n_sample, sigma2_star, a_star_list)
     inference = Model(X_i, init_dict, iterations, q, prior_param, xi = xi)  
     inference.gibbs_result()
-                    
-    for i in range(iterations):
+    
+    count =0
+#    for i in range(iterations*5):
+    while len(gibbs_results) != iterations:
+        count += 1
         inference.gibbs_step(X_i)
         X_i = inference.sample_x()
-        gibbs_results.append(np.mean(X_i,axis=1))
-    return forward_results, gibbs_results
+        if count %10 ==0:
+            gibbs_results.append(np.mean(np.std(X_i,axis=1)))
         
+    return forward_results, gibbs_results
+  
+#trace_plot([inference.gibbs_result()], var_list= ['sigma2_list', 'alpha_list'])      
         
 
 
 if __name__ == '__main__':
 
     d = 5
-    q_star = 1
+    q_star = 4
     n_sample = 1000
-    sigma2_star = 1
+    sigma2_star = 0.8
     a_star_list = 1 / np.linspace(1, 10, q_star)
     q = d-1
     
@@ -89,19 +74,28 @@ if __name__ == '__main__':
         "alpha0": np.random.uniform(0, 2, q)})   
 
     iterations = 1000
-    n_sample = 1000
+    n_sample = 3
     forward_results, gibbs_results = geweke(iterations, d, q_star, sigma2_star, a_star_list, prior_param, init_dict, n_sample)
     
     
     
-    indx = 2
-    plt.scatter(np.sort(np.array(forward_results)[:,indx]), np.sort(np.array(gibbs_results)[:,indx]))
+    indx = 0
+    #plt.scatter(np.sort(np.array(forward_results)[:,indx]), np.sort(np.array(gibbs_results)[:,indx]))
+    plt.scatter(np.sort(np.array(forward_results[500:])), np.sort(np.array(gibbs_results[500:])))
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.show()
     
     
+print(np.mean(np.array(forward_results))/np.mean(gibbs_results))
     
     
-    
-    
+import seaborn as sns    
+sns.distplot(np.array(forward_results))
+sns.distplot(np.array(gibbs_results))
+plt.show()
+
+a=gibbs_results
+b= np.mean(gibbs_results)
+plt.acorr(a-b, normed=True, usevlines=False, maxlags=10, label=u'thinned')
+plt.show()

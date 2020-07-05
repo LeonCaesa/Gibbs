@@ -117,6 +117,7 @@ class Model:
 
     def gibbs_step(self, X):
         self.X = X
+        self.n_sample = np.shape(X)[1]            
         self.sample_sigma2()
         self.sample_z()
         self.sample_w()
@@ -133,8 +134,9 @@ class Model:
 #            sigma2_w = np.diag(self.alpha_list[-1][j] * np.ones(self.d))
 #            W_star_j = np.random.multivariate_normal(mu_w, sigma2_w)
 #            W[:, j] = W_star_j
-#    
+#        X = np.dot(W, Z_star) + np.random.normal(0, self.sigma2_list[-1], [self.d, self.n_sample])                        
         X = np.dot(self.W_list[-1], self.Z_list[-1]) + np.random.normal(0, self.sigma2_list[-1], [self.d, self.n_sample])        
+        
         
         return X
     
@@ -196,4 +198,6 @@ if __name__ == '__main__':
     iterations = 1000
 
     inference = Model(X, init_dict, iterations, q, prior_param)
+    
+    
 
