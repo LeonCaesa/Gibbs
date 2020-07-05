@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore")
 
 
 class Model:
-    def __init__(self, X, init_dict, iterations, q , prior_param, xi=None):
+    def __init__(self, X, init_dict, iterations, q , prior_param, xi = None):
         """
         Function to initalialize gibbs scheme
         params: X, d by n data matrix,
@@ -36,7 +36,9 @@ class Model:
     
         """
         self.d = np.shape(X)[0]
+  
         self.n_sample = np.shape(X)[1]         
+
         self.q = q        
         self.iterations = iterations
         self.X = X
@@ -53,6 +55,8 @@ class Model:
         self.alpha_list = [init_dict['alpha0']]
         if xi is None:
             self.xi = 1
+        else:
+            self.xi = xi
     def sample_sigma2(self):
         
         alpha_sigma2_temp = self.n_sample * self.xi * self.d / 2 + self.a_sigma2
@@ -111,17 +115,32 @@ class Model:
 
         self.alpha_list.append(np.random.gamma(alpha_a, 1 / beta_a))
 
-    def gibbs_step(self):
-    
+    def gibbs_step(self, X):
+        self.X = X
         self.sample_sigma2()
         self.sample_z()
         self.sample_w()
         self.sample_alpha()        
-
-
+        
+    def sample_x(self):
+#        mu_z = np.zeros([self.q])
+#        sigma2_z = np.diag(np.ones([self.q]))
+#        Z_star = np.random.multivariate_normal(mu_z, sigma2_z, self.n_sample).T
+#    
+#        mu_w = np.zeros([self.d])
+#        W = np.zeros([self.d, self.q])
+#        for j in range(self.q):
+#            sigma2_w = np.diag(self.alpha_list[-1][j] * np.ones(self.d))
+#            W_star_j = np.random.multivariate_normal(mu_w, sigma2_w)
+#            W[:, j] = W_star_j
+#    
+        X = np.dot(self.W_list[-1], self.Z_list[-1]) + np.random.normal(0, self.sigma2_list[-1], [self.d, self.n_sample])        
+        
+        return X
+    
     def gibbs_result(self):
         for i in range(self.iterations):
-            self.gibbs_step()
+            self.gibbs_step(self.X)
 
         return dict({'sigma2_list': self.sigma2_list,
                  'Z_list': self.Z_list,
@@ -141,6 +160,9 @@ def w_mu_nominator(X, Z_list):
     for j in range(q):
         w_temp[j, :] = np.sum(X * Z_list[-1][j, :], axis=1)
     return w_temp
+
+
+
 
 
 if __name__ == '__main__':

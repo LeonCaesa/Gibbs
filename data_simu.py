@@ -38,7 +38,7 @@ def generate_data(d, q_star, n_sample, sigma2_star, a_star_list):
 if __name__ == '__main__':
 
     d = 5
-    q_star = 1
+    q_star = 2
     n_sample = 1000
     sigma2_star = 1
     a_star_list = 1 / np.linspace(1, 10, q_star)
