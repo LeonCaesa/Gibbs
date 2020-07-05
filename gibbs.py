@@ -18,105 +18,117 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-def gibbs_scheme(X, init_dict, iterations, q, prior_param, xi=None):
-    """
-    Function to implement gibbs scheme
-    params: X, d by n data matrix,
-    params: iterations, number of iterations in gibbs sampling
-    params: q, Maximum numebr of components, must be consistent with init_list
-    params: init_list, dict of q by n array Z0, 
-                               d by q array w0, 
-                               1 by q array alpha,
-                               scalar sigma sqaure
-    params: prior_param, dict of prior for alpha_j, 1 by q vector a_aj and beta_aj
-                                 prior for sigma sqaure, scalar beta_sigma2, scalar a_sigma2
-    params: xi, scalar, approxmiate sampling coefficient
-    return: pandas dataframe of inference on sigma2, Z, W and alpha
-
-    """
-    if xi is None:
-        xi = 1
-
-    d = np.shape(X)[0]
-    n_sample = np.shape(X)[1]
-    # inference parameters
-    beta_sigma2 = prior_param['beta_sigma2']
-    a_sigma2 = prior_param['a_sigma2']
-    a_aj = prior_param['a_aj']
-    beta_aj = prior_param['beta_aj']
-
-    # initialization
-    Z0 = init_dict['Z0']
-    sigma20 = init_dict['sigma20']
-    W0 = init_dict['w0']
-    alpha0 = init_dict['alpha0']
-
-    sigma2_list = [sigma20]
-    Z_list = [Z0]
-    W_list = [W0]
-    alpha_list = [alpha0]
-
-    for j in range(iterations):
-
-        # sampling for sigma2, scalar
-        alpha_sigma2_temp = n_sample * xi * d / 2 + a_sigma2
-        X_WZ = (X - np.dot(W_list[-1], Z_list[-1]))
+class Model:
+    def __init__(self, X, init_dict, iterations, q , prior_param, xi=None):
+        """
+        Function to initalialize gibbs scheme
+        params: X, d by n data matrix,
+        params: iterations, number of iterations in gibbs sampling
+        params: q, Maximum numebr of components, must be consistent with init_list
+        params: init_list, dict of q by n array Z0, 
+                                   d by q array w0, 
+                                   1 by q array alpha,
+                                   scalar sigma sqaure
+        params: prior_param, dict of prior for alpha_j, 1 by q vector a_aj and beta_aj
+                                     prior for sigma sqaure, scalar beta_sigma2, scalar a_sigma2
+        params: xi, scalar, approxmiate sampling coefficient
+        return: pandas dataframe of inference on sigma2, Z, W and alpha
+    
+        """
+        self.d = np.shape(X)[0]
+        self.n_sample = np.shape(X)[1]         
+        self.q = q        
+        self.iterations = iterations
+        self.X = X
+        # prior_params
+        self.beta_sigma2 = prior_param['beta_sigma2']
+        self.a_sigma2 = prior_param['a_sigma2']
+        self.a_aj = prior_param['a_aj']
+        self.beta_aj = prior_param['beta_aj']
+        
+        # init_list
+        self.Z_list = [init_dict['Z0']]
+        self.sigma2_list = [init_dict['sigma20']]
+        self.W_list = [init_dict['w0']]
+        self.alpha_list = [init_dict['alpha0']]
+        if xi is None:
+            self.xi = 1
+    def sample_sigma2(self):
+        
+        alpha_sigma2_temp = self.n_sample * self.xi * self.d / 2 + self.a_sigma2
+        X_WZ = (self.X - np.dot(self.W_list[-1], self.Z_list[-1]))
         S_x = np.trace(np.dot(X_WZ.T, X_WZ))
-        beta_sigma2_temp = (0.5 * (S_x * xi + 2 * beta_sigma2))
-        sigma2_list.append(
+        beta_sigma2_temp = (0.5 * (S_x * self.xi + 2 * self.beta_sigma2))
+        self.sigma2_list.append(
             1 / np.random.gamma(alpha_sigma2_temp, 1 / beta_sigma2_temp))
-
-        # sampling for (Z)_{qxn}
-        C = xi / sigma2_list[-1] * \
-            np.dot(W_list[-1].T, W_list[-1]) + np.diag(np.ones([q]))
+        
+        
+    def sample_z(self):
+        C = self.xi / self.sigma2_list[-1] * \
+            np.dot(self.W_list[-1].T, self.W_list[-1]) + np.diag(np.ones([self.q]))
 
         first = np.linalg.inv(C)
 
-        second = xi / sigma2_list[-1] * np.dot(W_list[-1].T, X)
+        second = self.xi / self.sigma2_list[-1] * np.dot(self.W_list[-1].T, self.X)
 
         Z_hat = np.dot(first, second)
 
-        Z_sigma2 = xi / \
-            sigma2_list[-1] * \
+        Z_sigma2 = self.xi / \
+            self.sigma2_list[-1] * \
             np.linalg.inv(
-                np.dot(W_list[-1].T, W_list[-1]) + np.diag(np.ones(q)))
+                np.dot(self.W_list[-1].T, self.W_list[-1]) + np.diag(np.ones(self.q)))
 
-        Z_temp = np.random.normal(0, 1, [q, n_sample])
+        Z_temp = np.random.normal(0, 1, [self.q, self.n_sample])
 
         Chol = np.linalg.cholesky(Z_sigma2)
 
-        Z_list.append(np.dot(Chol, Z_temp) + Z_hat)
+        self.Z_list.append(np.dot(Chol, Z_temp) + Z_hat)
+    def sample_w(self):
+        
+         # sampling for (w_j)_{dx1}
 
-        # sampling for (w_j)_{dx1}
-
-        nominator = w_mu_nominator(X, Z_list)
+        nominator = w_mu_nominator(self.X, self.Z_list)
 
         denominator = (
-            xi / sigma2_list[-1] * alpha_list[-1] + np.sum(Z_list[-1]**2, axis=1))
+            self.xi / self.sigma2_list[-1] * self.alpha_list[-1] + np.sum(self.Z_list[-1]**2, axis=1))
 
         mu_w = nominator.T / denominator.T
 
-        sigma2_w = sigma2_list[-1] / (xi / sigma2_list[-1]
-                                      * alpha_list[-1] + np.sum(Z_list[-1]**2, axis=1))
+        sigma2_w = self.sigma2_list[-1] / (self.xi / self.sigma2_list[-1]
+                                      * self.alpha_list[-1] + np.sum(self.Z_list[-1]**2, axis=1))
 
-        sigma2_w_temp = [np.diag(np.repeat(i, d)) for i in sigma2_w]
+        sigma2_w_temp = [np.diag(np.repeat(i, self.d)) for i in sigma2_w]
 
-        W_list.append(
+        self.W_list.append(
             np.array(list(map(np.random.multivariate_normal, mu_w.T, sigma2_w_temp))).T)
 
+    def sample_alpha(self):
+        
         # sampling for (alpha)_{1xq}
-        alpha_a = d / 2 + a_aj
+        alpha_a = self.d / 2 + self.a_aj
 
-        beta_a = 0.5 * np.diag(np.dot(W_list[-1].T, W_list[-1])) + beta_aj
+        beta_a = 0.5 * np.diag(np.dot(self.W_list[-1].T, self.W_list[-1])) + self.beta_aj
 
-        alpha_list.append(np.random.gamma(alpha_a, 1 / beta_a))
+        self.alpha_list.append(np.random.gamma(alpha_a, 1 / beta_a))
 
-#        return [sigma2_list, Z_list, W_list, alpha_list]
-    return dict({'sigma2_list': sigma2_list,
-                 'Z_list': Z_list,
-                 'W_list': W_list,
-                 'alpha_list': alpha_list,
+    def gibbs_step(self):
+    
+        self.sample_sigma2()
+        self.sample_z()
+        self.sample_w()
+        self.sample_alpha()        
+
+
+    def gibbs_result(self):
+        for i in range(self.iterations):
+            self.gibbs_step()
+
+        return dict({'sigma2_list': self.sigma2_list,
+                 'Z_list': self.Z_list,
+                 'W_list': self.W_list,
+                 'alpha_list': self.alpha_list,
                  })
+
 
 
 def w_mu_nominator(X, Z_list):
@@ -136,6 +148,7 @@ if __name__ == '__main__':
     # data generation parameter
     d = 5
     q_star = 1
+    q = d-1
     n_sample = 1000
     sigma2_star = 1
     a_star_list = 1 / np.linspace(1, 10, q_star)
@@ -160,105 +173,5 @@ if __name__ == '__main__':
 
     iterations = 1000
 
-    infer_list = gibbs_scheme(X, init_dict, iterations, q, prior_param)
+    inference = Model(X, init_dict, iterations, q, prior_param)
 
-    sigma2_list = infer_list[0]
-    Z_list = infer_list[1]
-    W_list = infer_list[2]
-    alpha_list = infer_list[3]
-
-    print(pd.DataFrame(alpha_list).mean())
-    pd.DataFrame(alpha_list).plot()
-    # pd.DataFrame(W_list[-1]).plot.hist()
-    plt.show()
-    plt.plot(sigma2_list)
-
-
-"""
-
-
-
-# inference parameters
-q = d-1
-iterations = 1000
-beta_sigma2 = 5
-a_sigma2 = 10
-a_aj = 1 / np.linspace(1,10,q)
-beta_aj = 1 / np.linspace(1,10,q)
-
-# initialization
-Z0 = np.random.multivariate_normal(np.zeros([q]), np.diag(np.ones([q])), n_sample).T
-sigma20 = 1.5
-W0 = np.random.normal(0, 0.6, [d,q])
-alpha0 = np.ones(q)
-
-# inference trace list
-sigma2_list = [sigma20]
-Z_list = [Z0]
-W_list = [W0]
-alpha_list = [alpha0]
-
-
-
-
-for j in range(iterations):
-    
-    # sampling from alpha, scalar 
-    alpha_sigma2_temp = n_sample * d/2 + a_sigma2
-    X_WZ = (X- np.dot(W_list[-1], Z_list[-1]))
-    S_x = np.trace(np.dot(X_WZ.T, X_WZ))
-    beta_sigma2_temp = (0.5 * (S_x + 2 * beta_sigma2))
-    sigma2_list.append(1/np.random.gamma(alpha_sigma2_temp, 1/beta_sigma2_temp))
-    
-    
-    # sampling for (Z)_{qxn}
-    C = 1/sigma2_list[-1] * np.dot( W_list[-1].T, W_list[-1]) + np.diag(np.ones([q]))
-
-    first = np.linalg.inv(C)
-    
-    second = 1/sigma2_list[-1]* np.dot(W_list[-1].T, X)
-    
-    Z_hat = np.dot(first, second)
-    
-    Z_sigma2 = 1/sigma2_list[-1]* np.linalg.inv (np.dot(W_list[-1].T, W_list[-1]) + np.diag(np.ones(q)))
-    
-    Z_temp = np.random.normal(0, 1, [q, n_sample])
-
-    Chol = np.linalg.cholesky(Z_sigma2)
-    
-    Z_list.append(np.dot(Chol , Z_temp)  + Z_hat)
-    
-
-        
-    # sampling for (w_j)_{dx1}
-    
-    nominator = w_mu_nominator(X,Z_list, d=d, q=q)
-    
-    denominator = (sigma2_list[-1] * alpha_list[-1] + np.sum(Z_list[-1]**2,axis=1))
-
-    mu_w = nominator.T/denominator.T
-    
-    sigma2_w = sigma2_list[-1]/ (sigma2_list[-1] * alpha_list[-1] + np.sum(Z_list[-1]**2,axis=1))
-
-    sigma2_w_temp = [np.diag(np.repeat(i,d)) for i in sigma2_w]
-
-    W_list.append(np.array(list(map(np.random.multivariate_normal, mu_w.T, sigma2_w_temp))).T)
-    
-    # sampling for (alpha)_{1xq}
-    alpha_a = d/2 + a_aj 
-    
-    beta_a = 0.5* np.diag(np.dot(W_list[-1].T,W_list[-1])) + beta_aj
-    
-    alpha_list.append(np.random.gamma(alpha_a, 1/beta_a))
-        
-    
-"""
-
-
-"""
-temp=0
-for i in range(n_sample):
-
-    temp+= np.sum((X[:,i]-np.dot(W_list[-1],Z_list[-1][:,i]))**2)
-    
-"""
