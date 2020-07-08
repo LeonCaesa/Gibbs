@@ -123,21 +123,8 @@ class Model:
         self.sample_w()
         self.sample_alpha()        
         
-    def sample_x(self):
-#        mu_z = np.zeros([self.q])
-#        sigma2_z = np.diag(np.ones([self.q]))
-#        Z_star = np.random.multivariate_normal(mu_z, sigma2_z, self.n_sample).T
-#    
-#        mu_w = np.zeros([self.d])
-#        W = np.zeros([self.d, self.q])
-#        for j in range(self.q):
-#            sigma2_w = np.diag(self.alpha_list[-1][j] * np.ones(self.d))
-#            W_star_j = np.random.multivariate_normal(mu_w, sigma2_w)
-#            W[:, j] = W_star_j
-#        X = np.dot(W, Z_star) + np.random.normal(0, self.sigma2_list[-1], [self.d, self.n_sample])                        
+    def sample_x(self):                   
         X = np.dot(self.W_list[-1], self.Z_list[-1]) + np.random.normal(0, self.sigma2_list[-1], [self.d, self.n_sample])        
-        
-        
         return X
     
     def gibbs_result(self):
