@@ -29,7 +29,6 @@ def forward_sample(d, q_star, n_sample):
         param: d, dimension of data
         param: q_star, true dimension of principle components
         param: n_sample, numebr of observations
-        param: a_star_list, jx1 vector, 1/variance parameter to generate W_j ~ N(0, 1/a_j I_d)
     """
     # sampling for z
     mu_z = np.zeros([q_star])
@@ -59,6 +58,16 @@ def forward_sample(d, q_star, n_sample):
 
 
 def geweke(iterations, d, q_star, prior_param, init_dict, n_sample, xi = None):
+    """
+        Function to simulate ppca data using X= WZ + \sigma^2 I_n
+        param: iteration, number of gibbs steps
+        param: q_star, true dimension of principle components
+        param: n_sample, numebr of observations
+        param: xi, the power posterior parameter
+        param: prior_param, dictonary of prior setup
+        param: d, dimension of the data x
+    """
+    
     forward_results = []
     for i in range(iterations):
         X_i = forward_sample(d, q_star, n_sample)
@@ -92,19 +101,24 @@ if __name__ == '__main__':
     
 
         
-    prior_param = dict({'beta_sigma2':2,
-          'a_sigma2':10,
-          'a_aj': 1 / np.linspace(1,10,q),
-          'beta_aj':1 / np.linspace(1,10,q)    
-    })
+    a_vj = 0.5 * d * np.ones(q) + 1
+    epislon = 0.1
+    
+    #a_vj = 10 * d * np.ones(q)
+    prior_param = dict({'beta_sigma2': 2,
+                            'a_sigma2': 1,
+                            'a_vj': a_vj ,
+                            'beta_vj': epislon * (a_vj-1)
+                            })
+
     
     init_dict = dict({'Z0':np.random.normal(0,1, [q, 1]),
         "sigma20":np.random.gamma(3,0.1),
         "w0":np.random.normal(0, 1, [d,q]),
-        "alpha0": np.random.gamma(1,2, d-1)})   
+        "v0": np.random.gamma(1,2, d-1)})   
 
     iterations = 1000
-    n_sample = 50
+    n_sample = 50   
     forward_results, gibbs_results = geweke(iterations, d, q_star, prior_param, init_dict, n_sample)
     
     

@@ -27,12 +27,12 @@ class Model:
         params: q, Maximum numebr of components, must be consistent with init_list
         params: init_list, dict of q by n array Z0, 
                                    d by q array w0, 
-                                   1 by q array alpha,
+                                   1 by q array v,
                                    scalar sigma sqaure
-        params: prior_param, dict of prior for alpha_j, 1 by q vector a_aj and beta_aj
+        params: prior_param, dict of prior for v_j, 1 by q vector a_vj and beta_vj
                                      prior for sigma sqaure, scalar beta_sigma2, scalar a_sigma2
         params: xi, scalar, approxmiate sampling coefficient
-        return: pandas dataframe of inference on sigma2, Z, W and alpha
+        return: pandas dataframe of inference on sigma2, Z, W and v
     
         """
         self.d = np.shape(X)[0]
@@ -45,14 +45,15 @@ class Model:
         # prior_params
         self.beta_sigma2 = prior_param['beta_sigma2']
         self.a_sigma2 = prior_param['a_sigma2']
-        self.a_aj = prior_param['a_aj']
-        self.beta_aj = prior_param['beta_aj']
+        self.a_vj = prior_param['a_vj']
+        self.beta_vj = prior_param['beta_vj']
         
         # init_list
         self.Z_list = [init_dict['Z0']]
         self.sigma2_list = [init_dict['sigma20']]
         self.W_list = [init_dict['w0']]
-        self.alpha_list = [init_dict['alpha0']]
+#        self.alpha_list = [init_dict['alpha0']]
+        self.v_list = [init_dict['v0']]        
         if xi is None:
             self.xi = 1
         else:
@@ -91,29 +92,28 @@ class Model:
         
          # sampling for (w_j)_{dx1}
 
-        nominator = w_mu_nominator(self.X, self.Z_list)
+        nominator =  w_mu_nominator(self.X, self.Z_list)
 
         denominator = (
-            self.xi / self.sigma2_list[-1] * self.alpha_list[-1] + np.sum(self.Z_list[-1]**2, axis=1))
+            self.xi / self.sigma2_list[-1] + self.v_list[-1]* np.sum(self.Z_list[-1]**2, axis=1))
 
-        mu_w = nominator.T / denominator.T
+        mu_w = self.v_list[-1] * nominator.T / denominator.T
 
-        sigma2_w = self.sigma2_list[-1] / (self.xi / self.sigma2_list[-1]
-                                      * self.alpha_list[-1] + np.sum(self.Z_list[-1]**2, axis=1))
+        sigma2_w = self.sigma2_list[-1] / (self.xi / self.sigma2_list[-1] + self.v_list[-1]*np.sum(self.Z_list[-1]**2, axis=1))
 
         sigma2_w_temp = [np.diag(np.repeat(i, self.d)) for i in sigma2_w]
 
         self.W_list.append(
             np.array(list(map(np.random.multivariate_normal, mu_w.T, sigma2_w_temp))).T)
 
-    def sample_alpha(self):
+    def sample_v(self):
         
         # sampling for (alpha)_{1xq}
-        alpha_a = self.d / 2 + self.a_aj
+        alpha_v = self.d / 2 + self.a_vj
 
-        beta_a = 0.5 * np.diag(np.dot(self.W_list[-1].T, self.W_list[-1])) + self.beta_aj
+        beta_v = 0.5 * np.diag(np.dot(self.W_list[-1].T, self.W_list[-1])) + self.beta_vj
 
-        self.alpha_list.append(np.random.gamma(alpha_a, 1 / beta_a))
+        self.v_list.append(1 / np.random.gamma(alpha_v, 1 / beta_v))
 
     def gibbs_step(self, X):
         self.X = X
@@ -121,7 +121,7 @@ class Model:
         self.sample_sigma2()
         self.sample_z()
         self.sample_w()
-        self.sample_alpha()        
+        self.sample_v()        
         
     def sample_x(self):                   
         X = np.dot(self.W_list[-1], self.Z_list[-1]) + np.random.normal(0, self.sigma2_list[-1], [self.d, self.n_sample])        
@@ -134,7 +134,7 @@ class Model:
         return dict({'sigma2_list': self.sigma2_list,
                  'Z_list': self.Z_list,
                  'W_list': self.W_list,
-                 'alpha_list': self.alpha_list,
+                 'v_list': self.v_list,
                  })
 
 
@@ -172,19 +172,19 @@ if __name__ == '__main__':
 
     prior_param = dict({'beta_sigma2': 2,
                         'a_sigma2': 10,
-                        'a_aj': 1 / np.linspace(1, 10, q),
-                        'beta_aj': 1 / np.linspace(1, 10, q)
+                        'a_vj': 1 / np.linspace(1, 10, q),
+                        'beta_vj': 1 / np.linspace(1, 10, q)
                         })
 
     init_dict = dict({'Z0': np.random.multivariate_normal(np.zeros([q]), np.diag(np.ones([q])), n_sample).T,
                       "sigma20": 1.5,
                       "w0": np.random.normal(0, 0.6, [d, q]),
-                      "alpha0": np.ones(q)
+                      "v0": np.ones(q)
                       })
 
     iterations = 1000
 
     inference = Model(X, init_dict, iterations, q, prior_param)
     
-    
+    inference.gibbs_result()
 
