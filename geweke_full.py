@@ -52,21 +52,11 @@ def forward_sample(d, q_star, n_sample, prior_param):
         W_star_j = np .random.multivariate_normal(mu_w, sigma2_w)
         W[:, j] = W_star_j
 
-    X = np.dot(W, Z_star) + np.random.normal(0, np.sqrt(sigma2_star), [d, n_sample])
+    X = np.dot(W, Z_star) + np.random.normal(0, sigma2_star, [d, n_sample])
 
     return X, W, Z_star, sigma2_star, a_star_list
 
 
-
-def forward_only_sigma2(W, Z_star, n_sample, prior_param):
-    
-    sigma2_star = 1/ np.random.gamma(prior_param['a_sigma2'], 1/prior_param['beta_sigma2'])
-    X = np.dot(W, Z_star) + np.random.normal(0, np.sqrt(sigma2_star), [d, n_sample])
-    
-    return X
-    
-    
-    
 
 def geweke(iterations, d, q_star, prior_param, init_dict, n_sample, xi = None):
     """
@@ -79,54 +69,56 @@ def geweke(iterations, d, q_star, prior_param, init_dict, n_sample, xi = None):
         param: d, dimension of the data x
     """
     
-    X, W, Z_star, sigma2_star, a_star_list = forward_sample(d, q_star, n_sample, prior_param)
-    gibbs_results = []   
-
-                   
-    inference = Model(X, init_dict, iterations, q, prior_param, xi = xi)  
-    inference.sigma2_list = [sigma2_star]
-    inference.W_list = [W]
-    inference.Z_list = [Z_star]
-    inference.a_star_list = [a_star_list]
-    
-    
     forward_results = []
+    W_list=[]
+    Z_list=[]
+    sigma2_list = []
+    a_star_list =[]
     for i in range(iterations):
-        X_i = forward_only_sigma2(W, Z_star, n_sample, prior_param)
+        sample_result = forward_sample(d, q_star, n_sample, prior_param)
+        X_i = sample_result[0]
+        W_list.append(sample_result[1])
+        Z_list.append(sample_result[2])
+        sigma2_list.append(sample_result[3])
+        a_star_list.append(sample_result[4])         
         forward_results.append(np.mean(np.std(X_i,axis=1)))
 
+# just itself restoratoin
+#    test_sample = []
+#    for j in range(iterations):
+# 
+#        X_i = np.dot(W_list[j], Z_list[j]) + np.random.normal(0, sigma2_list[j], [d, n_sample])        
+#        test_sample.append(np.mean(np.std(X_i,axis=1)))
+#
+#    sns.distplot(X_i.ravel(),label='restored')
+#    sns.distplot(forward_sample(d, q_star, n_sample, prior_param)[0].ravel(),label='real')    
+#    plt.legend()
+#
+#
+#    sns.distplot(np.array(forward_results))
+#    sns.distplot(np.array(test_sample))
+#    plt.show()
+#    plt.scatter(np.sort(np.array(forward_results)), np.sort(np.array(test_sample)))
+#    
+    gibbs_results = []                      
+    X_i_origin = forward_sample(d, q_star, n_sample,prior_param)[0]
+    inference = Model(X_i_origin, init_dict, iterations, q, prior_param, xi = xi)  
+    inference.sigma2_list = sigma2_list
+    inference.W_list = W_list
+    inference.Z_list = Z_list
+    inference.a_star_list = a_star_list   
     
-    
-    
+#    plt.plot(inference.sigma2_list)
+#    plt.show()
     count =0
-    sigma2_list = []
+    X_i = X_i_origin.copy()
     while len(gibbs_results) != iterations:
         count += 1
-        inference.gibbs_step(X_i)                
+        inference.gibbs_step(X_i)
         X_i = inference.sample_x()
-        if count %15 ==0:
+        if count %10 ==0:
             gibbs_results.append(np.mean(np.std(X_i,axis=1)))
-            X_WZ = (inference.X - np.dot(inference.W_list[-1], inference.Z_list[-1]))
-            S_x = np.trace(np.dot(X_WZ.T, X_WZ))        
-            sigma2_list.append(S_x)
-
-    plt.plot(sigma2_list)
-    
-#    Analysis on only sigma2
-    true_sigma2_sample = 1/ np.random.gamma(prior_param['a_sigma2'], 1/prior_param['beta_sigma2'], len(sigma2_list))
-    sns.distplot(true_sigma2_sample, label='True sigma2')    
-    
-    sns.distplot(inference.sigma2_list, label='MCM sigma2')    
-    plt.legend()
-    plt.show()
-    
-    
-    plt.scatter(np.sort(np.array(true_sigma2_sample)), np.sort(np.array(sigma2_list)/n_sample/d))
-    plt.xlabel('True')
-    plt.ylabel('Mcmc Sampled')
-    plt.show()
-     
-    
+        
     return forward_results, gibbs_results
   
 
@@ -157,14 +149,12 @@ if __name__ == '__main__':
     iterations = 1000
     n_sample = 50
     forward_results, gibbs_results = geweke(iterations, d, q_star, prior_param, init_dict, n_sample)
-            
     
     
-    indx = 0
-    #plt.scatter(np.sort(np.array(forward_results)[:,indx]), np.sort(np.array(gibbs_results)[:,indx]))
+    
     plt.scatter(np.sort(np.array(forward_results)), np.sort(np.array(gibbs_results)))
-    plt.xlabel('True Sample')
-    plt.ylabel('MCMC Sample')
+    plt.xlabel('X')
+    plt.ylabel('Y')
     plt.show()
     
     
@@ -172,8 +162,8 @@ print(np.mean(np.array(forward_results))/np.mean(gibbs_results))
     
     
 import seaborn as sns    
-sns.distplot(np.array(forward_results[500:]))
-sns.distplot(np.array(gibbs_results[500:]))
+sns.distplot(np.array(forward_results))
+sns.distplot(np.array(gibbs_results))
 plt.show()
 
 a=gibbs_results

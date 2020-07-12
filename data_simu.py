@@ -30,7 +30,7 @@ def generate_data(d, q_star, n_sample, sigma2_star, v_star_list):
         W_star_j = np .random.multivariate_normal(mu_w, sigma2_w)
         W[:, j] = W_star_j
 
-    X = np.dot(W, Z_star) + np.random.normal(0, sigma2_star, [d, n_sample])
+    X = np.dot(W, Z_star) + np.random.normal(0, np.sqrt(sigma2_star), [d, n_sample])
 
     return X
 

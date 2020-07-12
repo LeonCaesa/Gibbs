@@ -64,6 +64,22 @@ class Model:
         X_WZ = (self.X - np.dot(self.W_list[-1], self.Z_list[-1]))
         S_x = np.trace(np.dot(X_WZ.T, X_WZ))
         beta_sigma2_temp = (0.5 * (S_x * self.xi + 2 * self.beta_sigma2))
+        
+#        alpha_sigma2_temp = self.n_sample * self.xi * self.d / 2 + self.a_sigma2
+#        S_x = 0
+#        for i  in range(self.n_sample):
+#            X_WZ = (self.X[:,i] - np.dot(self.W_list[-1],self.Z_list[-1][:,i])).reshape([self.d, 1])
+#            S_x += np.trace(np.dot(X_WZ, X_WZ.T))     
+#            beta_sigma2_temp = (0.5 * (S_x * self.xi + 2 * self.beta_sigma2))        
+
+#        alpha_sigma2_temp = self.n_sample * self.xi * self.d / 2 + self.a_sigma2
+#        S_x = 0
+#        for i  in range(self.n_sample):
+#            X_WZ = (self.X[:,i] - np.dot(self.W_list[-1],self.Z_list[-1][:,i])).reshape([self.d, 1])
+#            S_x += np.dot(X_WZ.T, X_WZ)
+#            beta_sigma2_temp = (0.5 * (S_x * self.xi + 2 * self.beta_sigma2))
+#            
+            
         self.sigma2_list.append(
             1 / np.random.gamma(alpha_sigma2_temp, 1 / beta_sigma2_temp))
         
@@ -119,14 +135,20 @@ class Model:
         self.X = X
         self.n_sample = np.shape(X)[1]            
         self.sample_sigma2()
-        self.sample_z()
-        self.sample_w()
-        self.sample_v()        
-        
+#        self.sample_z()
+#        self.sample_w()
+#        self.sample_v()        
+#        
     def sample_x(self):                   
-        X = np.dot(self.W_list[-1], self.Z_list[-1]) + np.random.normal(0, self.sigma2_list[-1], [self.d, self.n_sample])        
+        X = np.dot(self.W_list[-1], self.Z_list[-1]) + np.random.normal(0, np.sqrt(self.sigma2_list[-1]), [self.d, self.n_sample])        
         return X
     
+#    X = np.dot(self.W_list[0], self.Z_list[0]) + np.random.normal(0, self.sigma2_list[0], [self.d, self.n_sample])        
+#    sns.distplot(X.ravel(), label='X')
+#    
+#    sns.distplot(X_i, label = 'X_real')
+#
+#    plt.legend()    
     def gibbs_result(self):
         for i in range(self.iterations):
             self.gibbs_step(self.X)
