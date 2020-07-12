@@ -58,8 +58,10 @@ def forward_sample(d, q_star, n_sample, prior_param):
 
 
 
-def forward_only_sigma2(W, Z_star, n_sample, prior_param):
+def forward_only_sigma2_Z(W, n_sample, prior_param):
     
+#    Z_star = np.random.multivariate_normal(mu_z, sigma2_z, n_sample).T
+    Z_star = np.random.normal(0, 1, [q, n_sample])
     sigma2_star = 1/ np.random.gamma(prior_param['a_sigma2'], 1/prior_param['beta_sigma2'])
     X = np.dot(W, Z_star) + np.random.normal(0, np.sqrt(sigma2_star), [d, n_sample])
     
@@ -92,39 +94,42 @@ def geweke(iterations, d, q_star, prior_param, init_dict, n_sample, xi = None):
     
     forward_results = []
     for i in range(iterations):
-        X_i = forward_only_sigma2(W, Z_star, n_sample, prior_param)
+        X_i = forward_only_sigma2_Z(W, n_sample, prior_param)
         forward_results.append(np.mean(np.std(X_i,axis=1)))
 
     
     
     
     count =0
-    sigma2_list = []
+#    sigma2_list = []
     while len(gibbs_results) != iterations:
         count += 1
         inference.gibbs_step(X_i)                
         X_i = inference.sample_x()
         if count %15 ==0:
             gibbs_results.append(np.mean(np.std(X_i,axis=1)))
-            X_WZ = (inference.X - np.dot(inference.W_list[-1], inference.Z_list[-1]))
-            S_x = np.trace(np.dot(X_WZ.T, X_WZ))        
-            sigma2_list.append(S_x)
+            
+            
+            
+#            X_WZ = (inference.X - np.dot(inference.W_list[-1], inference.Z_list[-1]))
+#            S_x = np.trace(np.dot(X_WZ.T, X_WZ))        
+##            sigma2_list.append(S_x)
 
-    plt.plot(sigma2_list)
-    
-#    Analysis on only sigma2
-    true_sigma2_sample = 1/ np.random.gamma(prior_param['a_sigma2'], 1/prior_param['beta_sigma2'], len(sigma2_list))
-    sns.distplot(true_sigma2_sample, label='True sigma2')    
-    
-    sns.distplot(inference.sigma2_list, label='MCM sigma2')    
-    plt.legend()
-    plt.show()
-    
-    
-    plt.scatter(np.sort(np.array(true_sigma2_sample)), np.sort(np.array(sigma2_list)/n_sample/d))
-    plt.xlabel('True')
-    plt.ylabel('Mcmc Sampled')
-    plt.show()
+#    plt.plot(sigma2_list)
+#    
+##    Analysis on only sigma2
+#    true_sigma2_sample = 1/ np.random.gamma(prior_param['a_sigma2'], 1/prior_param['beta_sigma2'], len(sigma2_list))
+#    sns.distplot(true_sigma2_sample, label='True sigma2')    
+#    
+#    sns.distplot(inference.sigma2_list, label='MCM sigma2')    
+#    plt.legend()
+#    plt.show()
+#    
+#    
+#    plt.scatter(np.sort(np.array(true_sigma2_sample)), np.sort(np.array(sigma2_list)/n_sample/d))
+#    plt.xlabel('True')
+#    plt.ylabel('Mcmc Sampled')
+#    plt.show()
      
     
     return forward_results, gibbs_results

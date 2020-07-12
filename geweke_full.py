@@ -52,7 +52,7 @@ def forward_sample(d, q_star, n_sample, prior_param):
         W_star_j = np .random.multivariate_normal(mu_w, sigma2_w)
         W[:, j] = W_star_j
 
-    X = np.dot(W, Z_star) + np.random.normal(0, sigma2_star, [d, n_sample])
+    X = np.dot(W, Z_star) + np.random.normal(0, np.sqrt(sigma2_star), [d, n_sample])
 
     return X, W, Z_star, sigma2_star, a_star_list
 

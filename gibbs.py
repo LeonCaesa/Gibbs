@@ -85,19 +85,22 @@ class Model:
         
         
     def sample_z(self):
-        C = self.xi / self.sigma2_list[-1] * \
-            np.dot(self.W_list[-1].T, self.W_list[-1]) + np.diag(np.ones([self.q]))
-
+#        C = self.xi / self.sigma2_list[-1] * \
+#            np.dot(self.W_list[-1].T, self.W_list[-1]) + np.diag(np.ones([self.q]))
+        C = np.dot(self.W_list[-1].T, self.W_list[-1]) + self.xi/self.sigma2_list[-1] * np.diag(np.ones([self.q]))
+            
         first = np.linalg.inv(C)
 
-        second = self.xi / self.sigma2_list[-1] * np.dot(self.W_list[-1].T, self.X)
+        second = np.dot(self.W_list[-1].T, self.X)
 
         Z_hat = np.dot(first, second)
 
-        Z_sigma2 = self.xi / \
-            self.sigma2_list[-1] * \
-            np.linalg.inv(
-                np.dot(self.W_list[-1].T, self.W_list[-1]) + np.diag(np.ones(self.q)))
+#        Z_sigma2 = self.xi / \
+#            self.sigma2_list[-1] * \
+#            np.linalg.inv(
+#                np.dot(self.W_list[-1].T, self.W_list[-1]) + np.diag(np.ones(self.q)))
+        Z_sigma2 = np.linalg.inv(self.sigma2_list[-1] * np.dot(self.W_list[-1].T, self.W_list[-1]) + np.diag(np.ones(self.q)))
+
 
         Z_temp = np.random.normal(0, 1, [self.q, self.n_sample])
 
@@ -135,9 +138,9 @@ class Model:
         self.X = X
         self.n_sample = np.shape(X)[1]            
         self.sample_sigma2()
-#        self.sample_z()
-#        self.sample_w()
-#        self.sample_v()        
+        self.sample_z()
+        self.sample_w()
+        self.sample_v()        
 #        
     def sample_x(self):                   
         X = np.dot(self.W_list[-1], self.Z_list[-1]) + np.random.normal(0, np.sqrt(self.sigma2_list[-1]), [self.d, self.n_sample])        
