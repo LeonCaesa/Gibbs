@@ -11,7 +11,7 @@
 """
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pandas as pd
 
 def trace_plot(infer_list, var_list):
     """
@@ -44,3 +44,21 @@ def get_trace_list(mcmc_list, var_name):
     warmup = int(len(mcmc_list[0][var_name]) / 2)
     series = np.array([i[var_name][warmup:] for i in mcmc_list])
     return series
+
+
+def plot_v_density(v_list):
+    """
+        Function to demonstrate the density of v inference result, plot are sorted according to the mean v in each chain
+    """
+    sorted_v_list = v_list.copy()
+    n_chains = len(v_list)
+    for j in range(len(v_list)):
+        v_temp = sorted(v_list[j].T, key=np.mean)
+
+        sorted_v_list[j]= np.array(v_temp).T
+
+    v_table = pd.concat([pd.DataFrame(sorted_v_list[i]) for i in range(n_chains)], axis=0, keys=list(range(n_chains)))
+    v_table.plot.density()
+    plt.title('V Density Plot')
+    plt.xlabel('v range')
+    return v_table
