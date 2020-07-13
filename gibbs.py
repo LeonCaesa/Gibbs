@@ -64,21 +64,6 @@ class Model:
         X_WZ = (self.X - np.dot(self.W_list[-1], self.Z_list[-1]))
         S_x = np.trace(np.dot(X_WZ.T, X_WZ))
         beta_sigma2_temp = (0.5 * (S_x * self.xi + 2 * self.beta_sigma2))
-        
-#        alpha_sigma2_temp = self.n_sample * self.xi * self.d / 2 + self.a_sigma2
-#        S_x = 0
-#        for i  in range(self.n_sample):
-#            X_WZ = (self.X[:,i] - np.dot(self.W_list[-1],self.Z_list[-1][:,i])).reshape([self.d, 1])
-#            S_x += np.trace(np.dot(X_WZ, X_WZ.T))     
-#            beta_sigma2_temp = (0.5 * (S_x * self.xi + 2 * self.beta_sigma2))        
-
-#        alpha_sigma2_temp = self.n_sample * self.xi * self.d / 2 + self.a_sigma2
-#        S_x = 0
-#        for i  in range(self.n_sample):
-#            X_WZ = (self.X[:,i] - np.dot(self.W_list[-1],self.Z_list[-1][:,i])).reshape([self.d, 1])
-#            S_x += np.dot(X_WZ.T, X_WZ)
-#            beta_sigma2_temp = (0.5 * (S_x * self.xi + 2 * self.beta_sigma2))
-#            
             
         self.sigma2_list.append(
             1 / np.random.gamma(alpha_sigma2_temp, 1 / beta_sigma2_temp))
@@ -111,19 +96,19 @@ class Model:
         
          # sampling for (w_j)_{dx1}
 
-        nominator =  w_mu_nominator(self.X, self.Z_list)
+        nominator =  w_mu_nominator(self.X, self.Z_list, self.W_list)
 
-        denominator = (
-            self.xi / self.sigma2_list[-1] + self.v_list[-1]* np.sum(self.Z_list[-1]**2, axis=1))
+        denominator = (self.sigma2_list[-1]/self.xi + self.v_list[-1]* np.sum(self.Z_list[-1]**2, axis=1))
 
         mu_w = self.v_list[-1] * nominator.T / denominator.T
 
-        sigma2_w = self.sigma2_list[-1] / (self.xi / self.sigma2_list[-1] + self.v_list[-1]*np.sum(self.Z_list[-1]**2, axis=1))
-
+        sigma2_w = self.sigma2_list[-1]/self.xi * self.v_list[-1] / (self.sigma2_list[-1]/self.xi + self.v_list[-1] * np.sum(self.Z_list[-1]**2, axis=1))
+        
         sigma2_w_temp = [np.diag(np.repeat(i, self.d)) for i in sigma2_w]
-
+        
         self.W_list.append(
-            np.array(list(map(np.random.multivariate_normal, mu_w.T, sigma2_w_temp))).T)
+            np.array(list(map(np.random.multivariate_normal, mu_w.T.reshape([self.q, self.d]).tolist(), sigma2_w_temp))).T)
+
 
     def sample_v(self):
         
@@ -139,19 +124,20 @@ class Model:
         self.n_sample = np.shape(X)[1]            
         self.sample_sigma2()
         self.sample_z()
+#        self.sample_v()          
         self.sample_w()
-        self.sample_v()        
+      
 #        
     def sample_x(self):                   
         X = np.dot(self.W_list[-1], self.Z_list[-1]) + np.random.normal(0, np.sqrt(self.sigma2_list[-1]), [self.d, self.n_sample])        
         return X
     
-#    X = np.dot(self.W_list[0], self.Z_list[0]) + np.random.normal(0, self.sigma2_list[0], [self.d, self.n_sample])        
-#    sns.distplot(X.ravel(), label='X')
-#    
-#    sns.distplot(X_i, label = 'X_real')
-#
-#    plt.legend()    
+#    X = np.dot(self.W_list[-1], self.Z_list[-1]) + np.random.normal(0, np.sqrt(self.sigma2_list[-1]), [self.d, self.n_sample])            
+#    X_real = np.dot(self.W_list[0], self.Z_list[0]) + np.random.normal(0, self.sigma2_list[0], [self.d, self.n_sample])        
+#    sns.distplot(X_real.ravel(), label='X')
+#    sns.distplot(X.ravel(), label = 'X_sampled')
+#   plt.legend()    
+        
     def gibbs_result(self):
         for i in range(self.iterations):
             self.gibbs_step(self.X)
@@ -164,15 +150,27 @@ class Model:
 
 
 
-def w_mu_nominator(X, Z_list):
+def w_mu_nominator(X, Z_list, W_list):
     """
         Function to calculate the mu vector of the conditional W matrix
     """
     q = np.shape(Z_list[-1])[0]
     d = np.shape(X)[0]
+    
+    
+    indx_list = list(range(q))
+    
     w_temp = np.zeros([q, d])
     for j in range(q):
-        w_temp[j, :] = np.sum(X * Z_list[-1][j, :], axis=1)
+        indx_list.remove(j)
+        
+        numerator = X - np.dot(W_list[-1][:,indx_list], Z_list[-1][indx_list, :])
+
+        denumerator = Z_list[-1][j,:]
+        
+        w_temp[j, :] = np.sum(numerator*denumerator,axis=1)
+        
+        indx_list = list(range(q))
     return w_temp
 
 

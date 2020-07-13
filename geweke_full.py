@@ -41,20 +41,20 @@ def forward_sample(d, q_star, n_sample, prior_param):
     sigma2_star = 1/ np.random.gamma(prior_param['a_sigma2'], 1/prior_param['beta_sigma2'])
     
     # sampling for alpha
-    a_star_list = 1/ np.random.gamma(prior_param['a_vj'], 1/prior_param['beta_vj'])
+    v_star_list = 1/ np.random.gamma(prior_param['a_vj'], 1/prior_param['beta_vj'])
     
   #  print(sigma2_star)
     # sampling for w
     mu_w = np.zeros([d])
     W = np.zeros([d, q_star])
     for j in range(q_star):
-        sigma2_w = np.diag(a_star_list[j] * np.ones(d))
+        sigma2_w = np.diag(v_star_list[j] * np.ones(d))
         W_star_j = np .random.multivariate_normal(mu_w, sigma2_w)
         W[:, j] = W_star_j
 
     X = np.dot(W, Z_star) + np.random.normal(0, np.sqrt(sigma2_star), [d, n_sample])
 
-    return X, W, Z_star, sigma2_star, a_star_list
+    return X, W, Z_star, sigma2_star, v_star_list
 
 
 
@@ -73,14 +73,14 @@ def geweke(iterations, d, q_star, prior_param, init_dict, n_sample, xi = None):
     W_list=[]
     Z_list=[]
     sigma2_list = []
-    a_star_list =[]
+    v_star_list =[]
     for i in range(iterations):
         sample_result = forward_sample(d, q_star, n_sample, prior_param)
         X_i = sample_result[0]
         W_list.append(sample_result[1])
         Z_list.append(sample_result[2])
         sigma2_list.append(sample_result[3])
-        a_star_list.append(sample_result[4])         
+        v_star_list.append(sample_result[4])         
         forward_results.append(np.mean(np.std(X_i,axis=1)))
 
 # just itself restoratoin
@@ -106,7 +106,7 @@ def geweke(iterations, d, q_star, prior_param, init_dict, n_sample, xi = None):
     inference.sigma2_list = sigma2_list
     inference.W_list = W_list
     inference.Z_list = Z_list
-    inference.a_star_list = a_star_list   
+    inference.v_list = v_star_list   
     
 #    plt.plot(inference.sigma2_list)
 #    plt.show()
@@ -116,7 +116,7 @@ def geweke(iterations, d, q_star, prior_param, init_dict, n_sample, xi = None):
         count += 1
         inference.gibbs_step(X_i)
         X_i = inference.sample_x()
-        if count %10 ==0:
+        if count %50 ==0:
             gibbs_results.append(np.mean(np.std(X_i,axis=1)))
         
     return forward_results, gibbs_results
@@ -146,8 +146,8 @@ if __name__ == '__main__':
         "w0":np.random.normal(0, 1, [d,q]),
         "v0": np.random.gamma(1,2, d-1)})   
 
-    iterations = 1000
-    n_sample = 50
+    iterations = 100
+    n_sample = 100
     forward_results, gibbs_results = geweke(iterations, d, q_star, prior_param, init_dict, n_sample)
     
     

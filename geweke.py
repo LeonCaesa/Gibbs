@@ -41,26 +41,33 @@ def forward_sample(d, q_star, n_sample, prior_param):
     sigma2_star = 1/ np.random.gamma(prior_param['a_sigma2'], 1/prior_param['beta_sigma2'])
     
     # sampling for alpha
-    a_star_list = 1/ np.random.gamma(prior_param['a_vj'], 1/prior_param['beta_vj'])
+    v_star_list = 1/ np.random.gamma(prior_param['a_vj'], 1/prior_param['beta_vj'])
     
   #  print(sigma2_star)
     # sampling for w
     mu_w = np.zeros([d])
     W = np.zeros([d, q_star])
     for j in range(q_star):
-        sigma2_w = np.diag(a_star_list[j] * np.ones(d))
+        sigma2_w = np.diag(v_star_list[j] * np.ones(d))
         W_star_j = np .random.multivariate_normal(mu_w, sigma2_w)
         W[:, j] = W_star_j
 
     X = np.dot(W, Z_star) + np.random.normal(0, np.sqrt(sigma2_star), [d, n_sample])
 
-    return X, W, Z_star, sigma2_star, a_star_list
+    return X, W, Z_star, sigma2_star, v_star_list
 
 
 
-def forward_only_sigma2_Z(W, n_sample, prior_param):
+def forward_only_sigma2_Z_W(n_sample, prior_param, v_star_list):
     
-#    Z_star = np.random.multivariate_normal(mu_z, sigma2_z, n_sample).T
+    mu_w = np.zeros([d])
+    W = np.zeros([d, q_star])
+    for j in range(q_star):
+        sigma2_w = np.diag(v_star_list[j] * np.ones(d))
+        W_star_j = np .random.multivariate_normal(mu_w, sigma2_w)
+        W[:, j] = W_star_j
+
+    
     Z_star = np.random.normal(0, 1, [q, n_sample])
     sigma2_star = 1/ np.random.gamma(prior_param['a_sigma2'], 1/prior_param['beta_sigma2'])
     X = np.dot(W, Z_star) + np.random.normal(0, np.sqrt(sigma2_star), [d, n_sample])
@@ -68,7 +75,18 @@ def forward_only_sigma2_Z(W, n_sample, prior_param):
     return X
     
     
+def forward_only_W(n_sample, Z_star, sigma2_star, v_star_list):
     
+    mu_w = np.zeros([d])
+    W = np.zeros([d, q_star])
+    for j in range(q_star):
+        sigma2_w = np.diag(v_star_list[j] * np.ones(d))
+        W_star_j = np .random.multivariate_normal(mu_w, sigma2_w)
+        W[:, j] = W_star_j
+    
+    X = np.dot(W, Z_star) + np.random.normal(0, np.sqrt(sigma2_star), [d, n_sample])
+    
+    return X
 
 def geweke(iterations, d, q_star, prior_param, init_dict, n_sample, xi = None):
     """
@@ -81,7 +99,7 @@ def geweke(iterations, d, q_star, prior_param, init_dict, n_sample, xi = None):
         param: d, dimension of the data x
     """
     
-    X, W, Z_star, sigma2_star, a_star_list = forward_sample(d, q_star, n_sample, prior_param)
+    X, W, Z_star, sigma2_star, v_star_list = forward_sample(d, q_star, n_sample, prior_param)
     gibbs_results = []   
 
                    
@@ -89,28 +107,55 @@ def geweke(iterations, d, q_star, prior_param, init_dict, n_sample, xi = None):
     inference.sigma2_list = [sigma2_star]
     inference.W_list = [W]
     inference.Z_list = [Z_star]
-    inference.a_star_list = [a_star_list]
+    inference.v_list = [v_star_list]
     
     
     forward_results = []
     for i in range(iterations):
-        X_i = forward_only_sigma2_Z(W, n_sample, prior_param)
+        X_i = forward_only_sigma2_Z_W( n_sample, prior_param, v_star_list)
+       # X_i = forward_only_W( n_sample, Z_star, sigma2_star, v_star_list)        
         forward_results.append(np.mean(np.std(X_i,axis=1)))
 
-    
-    
-    
+#    self = inference
     count =0
 #    sigma2_list = []
     while len(gibbs_results) != iterations:
-        count += 1
-        inference.gibbs_step(X_i)                
+        inference.gibbs_step(X_i)              
         X_i = inference.sample_x()
-        if count %15 ==0:
+        count += 1
+##        sns.distplot(inference.W_list[-1].ravel())
+        
+
+#       Anaysis on W 
+#        nominator =  w_mu_nominator(self.X, self.Z_list, self.W_list)
+#
+#        denominator = (self.sigma2_list[-1]/self.xi + self.v_list[-1]* np.sum(self.Z_list[-1]**2, axis=1))
+#
+#        mu_w = self.v_list[-1] * nominator.T / denominator.T
+#        print(mu_w.T)
+#        
+#        sigma2_w = self.sigma2_list[-1]/self.xi * self.v_list[-1] / (self.sigma2_list[-1]/self.xi + self.v_list[-1] * np.sum(self.Z_list[-1]**2, axis=1))
+#        
+#        sigma2_w_temp = [np.diag(np.repeat(i, self.d)) for i in sigma2_w]
+#        
+#        print('MCMC simga2 of w '+ str(sigma2_w))
+#        print(v_star_list)
+#        self.W_list.append(
+#            np.array(list(map(np.random.multivariate_normal, mu_w.T.reshape([self.q, self.d]).tolist(), sigma2_w_temp))).T)        
+#        X_i = inference.sample_x()
+#        self.X = X_i
+#        
+        
+        if count %100 ==0:      
             gibbs_results.append(np.mean(np.std(X_i,axis=1)))
             
             
-            
+#
+#    plt.scatter(np.sort(np.array(forward_results)), np.sort(np.array(gibbs_results)))
+#    plt.xlabel('True Sample')
+#    plt.ylabel('MCMC Sample')
+#    plt.show()
+                
 #            X_WZ = (inference.X - np.dot(inference.W_list[-1], inference.Z_list[-1]))
 #            S_x = np.trace(np.dot(X_WZ.T, X_WZ))        
 ##            sigma2_list.append(S_x)
@@ -118,7 +163,7 @@ def geweke(iterations, d, q_star, prior_param, init_dict, n_sample, xi = None):
 #    plt.plot(sigma2_list)
 #    
 ##    Analysis on only sigma2
-#    true_sigma2_sample = 1/ np.random.gamma(prior_param['a_sigma2'], 1/prior_param['beta_sigma2'], len(sigma2_list))
+#    true_sigma2_sample = 1/ np.random.gamma(prior_param['a_sigma2'], 1/prior_param['beta_sigma2'], len(inference.sigma2_list))
 #    sns.distplot(true_sigma2_sample, label='True sigma2')    
 #    
 #    sns.distplot(inference.sigma2_list, label='MCM sigma2')    
@@ -159,7 +204,7 @@ if __name__ == '__main__':
         "w0":np.random.normal(0, 1, [d,q]),
         "v0": np.random.gamma(1,2, d-1)})   
 
-    iterations = 1000
+    iterations = 50
     n_sample = 50
     forward_results, gibbs_results = geweke(iterations, d, q_star, prior_param, init_dict, n_sample)
             
