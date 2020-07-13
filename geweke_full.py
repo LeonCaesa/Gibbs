@@ -82,7 +82,7 @@ def geweke(iterations, d, q_star, prior_param, init_dict, n_sample, xi=None, thi
 
     gibbs_results = []
     X_i_origin = forward_sample(d, q_star, n_sample, prior_param)[0]
-    inference = Model(X_i_origin, init_dict, iterations, q, prior_param, xi=xi)
+    inference = Model(X_i_origin, init_dict, iterations, q_star, prior_param, xi=xi)
     inference.sigma2_list = sigma2_list
     inference.W_list = W_list
     inference.Z_list = Z_list
