@@ -36,7 +36,7 @@ def forward_sample(d, q_star, n_sample, prior_param):
     sigma2_star = 1 / \
         np.random.gamma(prior_param['a_sigma2'],
                         1 / prior_param['beta_sigma2'])
-
+    print('true sigma2_star is' +str(sigma2_star))
     # sampling for alpha
     v_star_list = 1 / \
         np.random.gamma(prior_param['a_vj'], 1 / prior_param['beta_vj'])

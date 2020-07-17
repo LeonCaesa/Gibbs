@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore")
 
 
 class Model:
-    def __init__(self, X, init_dict, iterations, q , prior_param, xi = None):
+    def __init__(self, X, init_dict, iterations, q , prior_param, thining =50, xi = None):
         """
         Function to initalialize gibbs scheme
         params: X, d by n data matrix,
@@ -53,6 +53,7 @@ class Model:
         self.sigma2_list = [init_dict['sigma20']]
         self.W_list = [init_dict['w0']]
         self.v_list = [init_dict['v0']]        
+        self.thining = thining
         if xi is None:
             self.xi = 1
         else:
@@ -63,7 +64,7 @@ class Model:
         X_WZ = (self.X - np.dot(self.W_list[-1], self.Z_list[-1]))
         S_x = np.trace(np.dot(X_WZ.T, X_WZ))
         beta_sigma2_temp = (0.5 * (S_x * self.xi + 2 * self.beta_sigma2))
-            
+        
         self.sigma2_list.append(
             1 / np.random.gamma(alpha_sigma2_temp, 1 / beta_sigma2_temp))
         
