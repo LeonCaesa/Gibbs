@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def forward_sample(d, q_star, n_sample, prior_param, verbose = True):
+def forward_sample(d, q_star, n_sample, prior_param, verbose = False):
     """
         Function to simulate ppca data using X= WZ + \sigma^2 I_n
         param: d, dimension of data

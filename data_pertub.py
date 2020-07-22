@@ -84,7 +84,25 @@ def CRP(n_sample, alpha=5):
 
     return count
 
-
+def sample_perturbation2(y_true, n_sample, alpha, noise =0.02):
+    """
+        Function to sample perturbation Po by taking a random draw of a Polya urn scheme 
+        Dirichlet process mixture with base distribution PθI , default concentration parameter 500.
+        params: w0, weights of probability
+        params: mu0, weights of component gaussian mean
+        params: sigma0, weights of component gaussian sigma  
+        params: n_sample # of data
+        parama: alpha, CRP divergence parameter
+        return: pertubated sample
+    """
+    count = CRP(n_sample, alpha)
+    
+    repeat_sample = np.repeat(y_true[:,:len(count)], count, axis=1)
+    
+#    return repeat_sample
+    return np.random.normal(repeat_sample, noise)
+    
+    
 def sample_perturbation(data_config, noise=0.02):
     """
         Function to sample perturbation Po by taking a random draw of a Polya urn scheme 
@@ -119,7 +137,8 @@ def sample_perturbation(data_config, noise=0.02):
     repeat_sample = np.repeat(unique_sample, count, axis=0)
 
 #    return np.random.normal(repeat_sample, 0.25)
-    return np.random.normal(repeat_sample.T, noise)
+    return repeat_sample.T
+#    return np.random.normal(repeat_sample.T, noise)
 
 
 if __name__ == '__main__':
