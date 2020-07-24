@@ -74,41 +74,49 @@ X = y_perturbation
 #  }   
 #}
 #   
+
 ppca_standard = """
 data { 
  int D; //number of dimensions
- int Q; //number of principle components
  int N; //number of data
+ int Q; //number of principle components
  vector[D] x[N]; //data
-
  real a_vj; // w_j prior 
  real epislon;// w_j mean
  
  real a_sigma2; // sigma2 prior 
  real beta_sigma2;// sigma2 mean
- 
  }
 
 parameters {
- real <lower=0,upper=1> v[Q]; // v_j
+ vector<lower=0>[Q] v; // v_j
  real<lower=0> sigma2; //data sigma2
 }
-
-  
 model {
+row_vector[D] eta;
+matrix[Q,D] W; //projection matrix
+matrix[D,D] C; //covaraince matrix
+matrix[D,D] L_C; //covaraince matrix
+
+
 eta ~ std_normal(); 
-for(k in 1:Q){
-    v[k] ~ inv_gamma(a_vj, epislon * (a-vj -1));
-    W[j] ~ v[k] * eta;
-}
 
+for(j in 1:Q){
+    v[j] ~ inv_gamma(a_vj, epislon * (a_vj -1));
+    W[j] = v[j] * eta;
+    }
 
-sigma2 ~ inv_gamma(2, 2);
-C = dot_product(W, W')+ sigma2 * eta;
+sigma2 ~ inv_gamma(a_sigma2, beta_sigma2);
+C = crossprod(W)+ sigma2 * diag_matrix(rep_vector(1, D));
 L_C = cholesky_decompose(C);
-x ~ multi_normal_cholesky(0, L_C);
+
+for(n in 1:N){
+x[n] ~ multi_normal_cholesky(rep_vector(1, D), L_C);
+}
 }
 """
+
+
 
 
 # inference parameter
@@ -120,7 +128,7 @@ xi = float(mcmc_setup['xi'])
 # prior parameter
 beta_sigma2 = float(mcmc_setup['beta_sigma2'])
 a_sigma2 = float(mcmc_setup['a_sigma2'])
-a_vj = float(mcmc_setup['a_vj']) * np.ones(q_star)
+a_vj = float(mcmc_setup['a_vj']) * np.ones(q)
 epislon = float(mcmc_setup['epislon'])
 beta_vj = epislon * (a_vj - 1)
 
@@ -138,7 +146,7 @@ ppca_dat = {'N': n_sample,
             'x': X.reshape([n_sample, d]),
             'D': d,
             'Q': q,
-            'a_vj': a_vj,
+            'a_vj': a_vj[0],
             'epislon': epislon,
             'a_sigma2': a_sigma2,
             'beta_sigma2': beta_sigma2
@@ -150,5 +158,4 @@ iterations = int(mcmc_setup['iterations'])
 
 
 sm_standard = pystan.StanModel(model_code=ppca_standard)
-fit_standard = sm_standard.sampling(
-    data=ppca_dat, iter=iterations, chains=n_chains)
+fit_standard = sm_standard.sampling(data=ppca_dat, iter=iterations, chains=n_chains, n_jobs=1)
