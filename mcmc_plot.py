@@ -12,6 +12,16 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import arviz as az
+import re
+import os
+from itertools import cycle
+regex= r'.*?([0-9].*?)\.pickle'
+pat=re.compile(regex)
+import seaborn as sns
+
+
+
 
 def trace_plot(infer_list, var_list):
     """
@@ -62,3 +72,16 @@ def plot_v_density(v_list):
     plt.title('V Density Plot')
     plt.xlabel('v range')
     return v_table
+
+"""
+Plot for pystan
+"""
+def az_v_sigma2_plot(stan_fit):
+        """
+        Function to demonstrate pystan v convergence result through R_hat table, autocorrelation (3 chians), and trace plot
+        """
+        print(az.summary(stan_fit, var_names=["v","sigma2",'W'], filter_vars="like"))
+        az.plot_trace(stan_fit, var_names=['v','sigma2'], filter_vars="like")
+        az.plot_autocorr(stan_fit, var_names=["v",'sigma2'])
+        az.plot_pair(stan_fit, var_names=["v",'sigma2'], divergences=True)
+        

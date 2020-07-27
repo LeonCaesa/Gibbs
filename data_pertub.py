@@ -37,11 +37,12 @@ def forward_sample(d, q_star, n_sample, prior_param, verbose=False):
         np.random.gamma(prior_param['a_sigma2'],
                         1 / prior_param['beta_sigma2'])
     if verbose:
-        print('true sigma2_star is' + str(sigma2_star))
+        print('true sigma2_star is ' + str(sigma2_star))
     # sampling for alpha
     v_star_list = 1 / \
         np.random.gamma(prior_param['a_vj'], 1 / prior_param['beta_vj'])
-
+    if verbose:
+        print('true v_j list is ' + str(v_star_list))
     # sampling for w
     mu_w = np.zeros([d])
     W = np.zeros([d, q_star])
@@ -53,7 +54,8 @@ def forward_sample(d, q_star, n_sample, prior_param, verbose=False):
     X = np.dot(W, Z_star) + np.random.normal(0,
                                              np.sqrt(sigma2_star), [d, n_sample])
 
-    return X
+#    return X
+    return X, W, Z_star, sigma2_star, v_star_list
 
 
 def CRP(n_sample, alpha=5):
