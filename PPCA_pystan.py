@@ -21,7 +21,8 @@ data {
     int D; //number of dimensions
     int N; //number of data
     int Q; //number of principle components
-    vector[D] x[N]; //data
+    matrix[N,D] x; // data
+//    vector[D] x[N]; //data
     real a_vj; // w_j prior 
     real epsilon;// w_j mean
     real xi; // power parameter
@@ -42,10 +43,10 @@ model {
         }
         
     sigma2 ~ inv_gamma(a_sigma2, beta_sigma2);
+    
     C = crossprod(W)+ sigma2 * diag_matrix(rep_vector(1, D));
-    for(n in 1:N){
-    target += xi * multi_normal_lpdf(x[n]|rep_vector(0,D), C);
-    }
+    
+    target += - N/2 *(log_determinant (C) + 1/N * trace( inverse(C) * crossprod(x)));
 }
 
 generated quantities {
