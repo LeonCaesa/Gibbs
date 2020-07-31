@@ -80,8 +80,10 @@ def az_v_sigma2_plot(stan_fit):
         """
         Function to demonstrate pystan v convergence result through R_hat table, autocorrelation (3 chians), and trace plot
         """
-        print(az.summary(stan_fit, var_names=["v","sigma2",'W'], filter_vars="like"))
-        az.plot_trace(stan_fit, var_names=['v','sigma2'], filter_vars="like")
+#        print(az.summary(stan_fit, var_names=["v","sigma2",'W'], filter_vars="like"))
+        print(az.summary(stan_fit, var_names=["v","sigma2",'W']))
+#        az.plot_trace(stan_fit, var_names=['v','sigma2'], filter_vars="like")
+        az.plot_trace(stan_fit, var_names=['v','sigma2'])
         az.plot_autocorr(stan_fit, var_names=["v",'sigma2'])
         az.plot_pair(stan_fit, var_names=["v",'sigma2'], divergences=True)
         
