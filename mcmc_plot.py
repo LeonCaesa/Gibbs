@@ -76,14 +76,14 @@ def plot_v_density(v_list):
 """
 Plot for pystan
 """
-def az_v_sigma2_plot(stan_fit):
+def az_v_sigma2_plot(stan_fit, var_list = ['v','sigma2']):
         """
         Function to demonstrate pystan v convergence result through R_hat table, autocorrelation (3 chians), and trace plot
         """
 #        print(az.summary(stan_fit, var_names=["v","sigma2",'W'], filter_vars="like"))
-        print(az.summary(stan_fit, var_names=["v","sigma2",'W']))
+        print(az.summary(stan_fit, var_names = var_list + ['W']))
 #        az.plot_trace(stan_fit, var_names=['v','sigma2'], filter_vars="like")
-        az.plot_trace(stan_fit, var_names=['v','sigma2'])
-        az.plot_autocorr(stan_fit, var_names=["v",'sigma2'])
-        az.plot_pair(stan_fit, var_names=["v",'sigma2'], divergences=True)
+        az.plot_trace(stan_fit, var_names = var_list)
+        az.plot_autocorr(stan_fit, var_names = var_list)
+        az.plot_pair(stan_fit, var_names = var_list, divergences=True)
         
