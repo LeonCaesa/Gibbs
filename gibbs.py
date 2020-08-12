@@ -118,7 +118,7 @@ class Model:
         self.n_sample = np.shape(X)[1]            
         self.sample_sigma2()
         self.sample_z()
-#        self.sample_v()          
+        self.sample_v()          
         self.sample_w()
            
     def sample_x(self):                   
