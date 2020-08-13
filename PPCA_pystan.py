@@ -27,6 +27,7 @@ data {
 //    real epsilon;// w_j mean
     real beta_vj; //w_j prior
     real xi; // power parameter
+    real sigma2; //real sigma2
     real a_sigma2; // sigma2 prior 
     real beta_sigma2;// sigma2 mean
  //   vector[Q] v; // true v_j
@@ -45,7 +46,7 @@ transformed data {
 parameters {
 //    vector[Q] v; // v_j
     ordered[Q] v; // v_j
-    real<lower=0> sigma2; //data sigma2
+//    real<lower=0> sigma2; //data sigma2
     matrix[Q,D] W; //projection matrix
 }
 model {
@@ -56,7 +57,7 @@ model {
         W[j] ~ multi_normal(rep_vector(0,D), v[j] * diag_matrix(rep_vector(1, D)));
         }
         
-    sigma2 ~ inv_gamma(a_sigma2, beta_sigma2);
+//    sigma2 ~ inv_gamma(a_sigma2, beta_sigma2);
     
     C = crossprod(W)+ sigma2 * diag_matrix(rep_vector(1, D));
     
