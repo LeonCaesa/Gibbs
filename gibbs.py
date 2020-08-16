@@ -12,7 +12,7 @@ import numpy as np
 import seaborn as sns
 from scipy.stats import invgamma
 import matplotlib.pyplot as plt
-from data_simu import *
+from data_pertub import *
 import pandas as pd
 import warnings
 warnings.filterwarnings("ignore")
@@ -31,7 +31,7 @@ class Model:
                                    scalar sigma sqaure
         params: prior_param, dict of prior for v_j, 1 by q vector a_vj and beta_vj
                                      prior for sigma sqaure, scalar beta_sigma2, scalar a_sigma2
-        params: xi, scalar, approxmiate sampling coefficient
+
         return: pandas dataframe of inference on sigma2, Z, W and v
     
         """
