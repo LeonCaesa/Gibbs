@@ -24,30 +24,39 @@ data {
     matrix[N,D] x; // data
 //    vector[D] x[N]; //data
     real a_vj; // w_j prior 
-    real epsilon;// w_j mean
+//    real epsilon;// w_j mean
+    real beta_vj; //w_j prior
     real xi; // power parameter
+    real sigma2; //real sigma2
     real a_sigma2; // sigma2 prior 
     real beta_sigma2;// sigma2 mean
-    vector[Q] v; // true v_j
+ //   vector[Q] v; // true v_j
 }
 
 parameters {
-   // ordered[Q] v; // v_j
-    real<lower=0> sigma2; //data sigma2
+//    vector[Q] v; // v_j
+    ordered[Q] v; // v_j
+//    real<lower=0> sigma2; //data sigma2
     matrix[Q,D] W; //projection matrix
 }
 model {
     matrix[D,D] C; //covaraince matrix
     for(j in 1:Q){
-       // v[j] ~ inv_gamma(a_vj, epsilon * (a_vj -1));
+//        v[j] ~ inv_gamma(a_vj, epsilon * (a_vj -1));
+        v[j] ~ inv_gamma(a_vj, beta_vj);
         W[j] ~ multi_normal(rep_vector(0,D), v[j] * diag_matrix(rep_vector(1, D)));
         }
         
-    sigma2 ~ inv_gamma(a_sigma2, beta_sigma2);
+//    sigma2 ~ inv_gamma(a_sigma2, beta_sigma2);
     
     C = crossprod(W)+ sigma2 * diag_matrix(rep_vector(1, D));
     
+<<<<<<< HEAD
     target += - N/2 *(log_determinant (C) + 1/N * trace( inverse(C) * crossprod(x)));
+=======
+
+    target += - xi * N/2 *(log_determinant (C) + trace( C\S));
+>>>>>>> my-temporary-work
 }
 
 generated quantities {
