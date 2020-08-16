@@ -9,4 +9,7 @@ Mainly to replicate the idea of [Bayesian PCA](https://papers.nips.cc/paper/1549
 Prior on $\alpha_j$ is implemented as Gamma(a, b), all other setups are the same to the article
 
 
-See [Perturbation_Consise.ipynb](https://github.com/LeonCaesa/Gibbs/blob/master/Perturbation_Consise.ipynb) for the main result
+See [Perturbation_Consise](https://github.com/LeonCaesa/Gibbs/blob/master/Perturbation_Consise.ipynb) for the main result.
+
+
+Also implemented the HMC through Pystan with result in []()
