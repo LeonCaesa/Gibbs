@@ -13,7 +13,7 @@
 
 import seaborn as sns
 from gibbs import Model, w_mu_nominator  # analysis:ignore
-from data_simu import generate_data  # analysis:ignore
+#from data_simu import generate_data  # analysis:ignore
 
 import numpy as np
 import matplotlib.pyplot as plt
