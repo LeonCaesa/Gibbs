@@ -12,4 +12,4 @@ Prior on $\alpha_j$ is implemented as Gamma(a, b), all other setups are the same
 See [Perturbation_Consise](https://github.com/LeonCaesa/Gibbs/blob/master/Perturbation_Consise.ipynb) for the main result.
 
 
-Also implemented the HMC through Pystan with result in []()
+Also implemented the HMC through Pystan with result in [Match](https://github.com/LeonCaesa/Gibbs/blob/master/Match.ipynb)
